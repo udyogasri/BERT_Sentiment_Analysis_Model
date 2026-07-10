@@ -83,8 +83,11 @@ Thumbs.db
 # Project-specific
 # -----------------
 # Data and models (do not check large datasets or saved models)
-data/*.csv
-models/saved_model/
+backend/data/*.csv
+backend/models/saved_model/
+backend/models/*.bin
+backend/models/*.safetensors
+backend/models/*.pt
 
 # Logs
 logs
