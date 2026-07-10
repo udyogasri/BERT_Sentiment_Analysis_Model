@@ -1,8 +1,24 @@
+import os
+import random
 import torch
 from torch.utils.data import DataLoader, Subset
 from transformers import BertTokenizer
 from torch.optim import AdamW
 from tqdm import tqdm
+
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
+
+try:
+    torch.set_num_threads(1)
+except RuntimeError:
+    pass
+try:
+    torch.set_num_interop_threads(1)
+except RuntimeError:
+    pass
 
 from dataset import IMDBDataset
 from model import get_model
@@ -13,7 +29,10 @@ from config import (
     LEARNING_RATE,
     EPOCHS,
     TRAIN_DATA_PATH,
-    MODEL_SAVE_PATH
+    MODEL_SAVE_PATH,
+    TRAIN_SUBSET_SIZE,
+    TRAIN_SUBSET_BALANCED,
+    TRAIN_SUBSET_SEED,
 )
 
 def train():
@@ -34,8 +53,30 @@ def train():
         max_length=MAX_LENGTH
     )
     print(f"Dataset Size: {len(train_dataset)}")
-    # Train on only 3000 reviews for faster testing
-    train_dataset = Subset(train_dataset, range(3000))
+
+    if TRAIN_SUBSET_SIZE is not None and TRAIN_SUBSET_SIZE > 0 and TRAIN_SUBSET_SIZE < len(train_dataset):
+        print(f"Sampling a balanced subset of {TRAIN_SUBSET_SIZE} reviews for training")
+        random.seed(TRAIN_SUBSET_SEED)
+
+        # Build balanced subset indices from both classes
+        label_indices = {0: [], 1: []}
+        for idx in range(len(train_dataset)):
+            item = train_dataset[idx]
+            label_indices[int(item["labels"].item())].append(idx)
+
+        half = TRAIN_SUBSET_SIZE // 2
+        selected = []
+        selected.extend(random.sample(label_indices[0], min(half, len(label_indices[0]))))
+        selected.extend(random.sample(label_indices[1], min(half, len(label_indices[1]))))
+
+        if len(selected) < TRAIN_SUBSET_SIZE:
+            remaining = TRAIN_SUBSET_SIZE - len(selected)
+            all_indices = [i for i in range(len(train_dataset)) if i not in selected]
+            selected.extend(random.sample(all_indices, min(remaining, len(all_indices))))
+
+        train_dataset = Subset(train_dataset, selected)
+    else:
+        print("Training on full dataset")
 
     print(f"Training on {len(train_dataset)} reviews")
 

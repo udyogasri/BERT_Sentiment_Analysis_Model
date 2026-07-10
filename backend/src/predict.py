@@ -1,8 +1,16 @@
+import os
+import sys
+from pathlib import Path
+
 import torch
 from transformers import BertTokenizer
 from transformers import BertForSequenceClassification
 
-from config import MODEL_SAVE_PATH, MAX_LENGTH
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+if str(BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(BACKEND_ROOT))
+
+from src.config import MODEL_SAVE_PATH, MAX_LENGTH
 
 device = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"

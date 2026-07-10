@@ -10,13 +10,13 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 MODEL_NAME = "bert-base-uncased"
 
 # Maximum number of tokens in a review
-MAX_LENGTH = 128
+MAX_LENGTH = 64
 
 # Number of reviews processed together
-BATCH_SIZE = 16
+BATCH_SIZE = 4
 
 # Number of complete passes through the dataset
-EPOCHS = 3
+EPOCHS = 1
 
 # Learning rate for AdamW optimizer
 LEARNING_RATE = 2e-5
@@ -26,6 +26,11 @@ NUM_CLASSES = 2
 
 # Random seed for reproducibility
 RANDOM_SEED = 42
+
+# Training subset settings
+TRAIN_SUBSET_SIZE = 1000
+TRAIN_SUBSET_BALANCED = True
+TRAIN_SUBSET_SEED = 42
 
 # File Paths
 TRAIN_DATA_PATH = str(BACKEND_ROOT / "data" / "train.csv")
