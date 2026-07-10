@@ -1,95 +1,148 @@
 # BERT Sentiment Analysis Model
 
-This repository contains a PyTorch-based implementation of a sentiment analysis model using a pre-trained **BERT (Bidirectional Encoder Representations from Transformers)** model (`bert-base-uncased`) fine-tuned on the IMDb movie reviews dataset.
+This project uses a fine-tuned BERT classifier for sentiment analysis on movie reviews. The current flow is:
 
-It features a modern **React frontend** dashboard that communicates with a **FastAPI backend** server to predict sentiment (Positive/Negative) and show confidence scores on any arbitrary text in real-time.
+1. Download the dataset
+2. Train a BERT model locally
+3. Evaluate the model on a test subset
+4. Start the FastAPI backend
+5. Start the React frontend and analyze text in the browser
+
+The backend exposes a simple REST API for sentiment prediction, and the frontend sends text to that API and displays the predicted label and confidence.
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```text
-├── backend/                    # Python FastAPI Backend & Machine Learning Pipeline
-│   ├── data/                   # Dataset directory (CSVs are downloaded here)
-│   ├── models/                 # Saved local models and vocabulary
-│   │   └── saved_model/        # Contains fine-tuned weights, config, and tokenizer
-│   ├── src/                    # ML source code (train, dataset, predict, etc.)
-│   ├── main.py                 # FastAPI API entrypoint
-│   ├── .gitignore              # Git ignore rules for data, models, and virtual envs
-│   └── requirements.txt        # Python backend dependencies
-│
-├── frontend/                   # React Frontend (Vite)
-│   ├── src/                    # React components and styling
-│   │   ├── App.jsx             # Main dashboard UI
-│   │   └── index.css           # Glassmorphic CSS style system
-│   ├── package.json            # Frontend packages & scripts
-│   └── vite.config.js          # Vite config
-│
-└── README.md                   # Main setup instructions
+backend/
+  data/                # Dataset CSV files
+  models/              # Local model artifacts (ignored by Git)
+  src/
+    config.py          # Model and training settings
+    dataset.py         # Dataset loader for the CSV files
+    download_dataset.py
+    evaluate.py        # Evaluation script
+    model.py           # Model definition
+    predict.py         # Inference logic
+    train.py           # Training script
+  main.py              # FastAPI entrypoint
+  requirements.txt
+
+frontend/
+  src/
+    App.jsx            # Main UI
+    InteractiveCanvas.jsx
+    theme.js
+  package.json
+  vite.config.js
 ```
 
 ---
 
-## 🚀 Getting Started (Setup & Execution)
+## Current Workflow
 
-### Step 1: Set Up & Start the Backend
+### 1. Set up the backend environment
 
-Open a terminal at the root of the project and run the following:
+Open PowerShell in the project root and run:
 
-```bash
-# 1. Navigate to the backend directory
+```powershell
 cd backend
-
-# 2. Set up virtual environment
 python -m venv .venv
-
-# 3. Activate the virtual environment
-# Windows (PowerShell):
-.venv\Scripts\Activate.ps1
-# Windows (CMD):
-.venv\Scripts\activate.bat
-# macOS/Linux:
-source .venv/bin/activate
-
-# 4. Install backend dependencies
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-
-# 5. Download the IMDb dataset
-python src/download_dataset.py
-
-# 6. Fine-tune the BERT model
-python src/train.py
-
-# 7. Start the FastAPI backend API
-uvicorn main:app --reload
 ```
-*The FastAPI server will start running on `http://127.0.0.1:8000`.*
 
----
+### 2. Download the dataset
 
-### Step 2: Set Up & Start the Frontend
+```powershell
+python src/download_dataset.py
+```
 
-Open a **new terminal window** at the root of the project and run the following:
+This will place the training and test CSV files under the backend data folder.
 
-```bash
-# 1. Navigate to the frontend directory
+### 3. Train the model
+
+```powershell
+python src/train.py
+```
+
+The script trains a lightweight BERT classifier using a balanced subset of reviews and saves the model locally to backend/models/saved_model.
+
+### 4. Evaluate the model
+
+```powershell
+python src/evaluate.py --subset 200 --balanced --show-samples 5
+```
+
+This gives a quick accuracy/precision/recall/F1 report and prints a few sample predictions.
+
+### 5. Start the backend
+
+Open a new terminal and run:
+
+```powershell
+cd backend
+.\.venv\Scripts\Activate.ps1
+python -m uvicorn main:app --host 127.0.0.1 --port 8000
+```
+
+The API will be available at:
+
+- http://127.0.0.1:8000/
+- http://127.0.0.1:8000/predict
+
+### 6. Start the frontend
+
+Open another terminal and run:
+
+```powershell
 cd frontend
-
-# 2. Install node dependencies
 npm install
-
-# 3. Start the Vite React development server
 npm run dev
 ```
-*The React application will start running on `http://localhost:5173`. Open this URL in your web browser.*
+
+Then open http://localhost:5173 in the browser.
 
 ---
 
-## ⚙️ Configuration & Hyperparameters
+## API Behavior
 
-You can adjust hyperparameters in `backend/src/config.py`:
-*   `MODEL_NAME`: Pretrained BERT backbone (defaults to `"bert-base-uncased"`).
-*   `MAX_LENGTH`: Max number of tokens per text sequence (defaults to `128`).
-*   `BATCH_SIZE`: Number of samples processed in parallel (defaults to `16`).
-*   `EPOCHS`: Number of full training passes (defaults to `3`).
-*   `LEARNING_RATE`: AdamW optimizer step size (defaults to `2e-5`).
+The backend accepts a JSON body like this:
+
+```json
+{
+  "text": "This movie was amazing!"
+}
+```
+
+It returns:
+
+```json
+{
+  "text": "This movie was amazing!",
+  "sentiment": "Positive",
+  "confidence": 0.95
+}
+```
+
+---
+
+## Current Model Settings
+
+The training configuration is defined in backend/src/config.py and currently uses:
+
+- Model: bert-base-uncased
+- Max length: 64
+- Batch size: 4
+- Epochs: 1
+- Learning rate: 2e-5
+- Training subset: 1000 balanced reviews
+
+---
+
+## Notes
+
+- The trained model weights are stored locally under backend/models/saved_model.
+- Large model artifacts are ignored by Git, so they stay local and do not need to be pushed to GitHub.
+- If the model is not trained yet, the API will return an error until training has completed.
